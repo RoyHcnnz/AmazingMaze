@@ -13,6 +13,19 @@ export class Game extends Scene
         
     }
 
+    markCell(row: number, col: number, 
+        offset_x: number, offset_y: number, 
+        color: number): void
+    {
+        this.add.rectangle(
+            offset_x + col*this.cellWidth, 
+            offset_y + row*this.cellWidth, 
+            this.cellWidth-1, 
+            this.cellWidth-1, 
+            color, 0.5
+        ).setOrigin(0);
+    }
+
     drawMaze(rown: number, coln: number, offset_x: number, offset_y: number): 
     void{
         const maze = new Maze(rown, coln);
@@ -23,6 +36,12 @@ export class Game extends Scene
                     offset_y + r*this.cellWidth,
                     maze.maze[r][c]
                 );
+                if(r == maze.start_point_r && c == maze.start_point_c){
+                    this.markCell(r, c, offset_x, offset_y, 0x008000)
+                }
+                if(r == maze.end_point_r && c == maze.end_point_c){
+                    this.markCell(r, c, offset_x, offset_y, 0xff0000)
+                }
             }
         }
     }

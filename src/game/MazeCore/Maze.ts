@@ -9,18 +9,18 @@ export class Maze{
     maze: number[][];
     rown: number;
     coln: number;
-    start_point_x: number;
-    start_point_y: number;
-    end_point_x: number;
-    end_point_y: number;
+    start_point_r: number;
+    start_point_c: number;
+    end_point_r: number;
+    end_point_c: number;
 
     constructor(rown: number, coln: number){
         this.rown = rown;
         this.coln = coln;
         this.maze = new Array(rown).fill(null)
             .map(() => new Array(coln).fill(0b1111));
-        [this.start_point_x, this.start_point_y] = this.pick_random_point();
-        [this.end_point_x, this.end_point_y] = this.pick_random_point();
+        [this.start_point_r, this.start_point_c] = this.pick_random_point();
+        [this.end_point_r, this.end_point_c] = this.pick_random_point();
 
         this.generate();
     }
@@ -81,10 +81,10 @@ export class Maze{
 
     generate(){
         var frontier: number[] = [this.rc_to_cell_id(
-            this.start_point_x, this.start_point_y
+            this.start_point_r, this.start_point_c
         )];
         var reached: Set<number> = new Set([this.rc_to_cell_id(
-            this.start_point_x, this.start_point_y
+            this.start_point_r, this.start_point_c
         )]);
         while(reached.size < this.rown * this.coln){
             // random pick from frontier
