@@ -13,16 +13,20 @@ export class Maze{
     start_point_c: number;
     end_point_r: number;
     end_point_c: number;
+    solution_path: [number, number][];
 
     constructor(rown: number, coln: number){
         this.rown = rown;
         this.coln = coln;
+        this.solution_path = [];
         this.maze = new Array(rown).fill(null)
             .map(() => new Array(coln).fill(0b1111));
         [this.start_point_r, this.start_point_c] = this.pick_random_point();
         [this.end_point_r, this.end_point_c] = this.pick_random_point();
 
+
         this.generate();
+        this.find_solution();
     }
 
     // turn cell id to row and col
@@ -145,6 +149,92 @@ export class Maze{
                 }
             }
         }
+    }
+
+    find_solution(){
+        // bfs
+        var search_queue: number[] = [this.rc_to_cell_id(
+            this.start_point_r, this.start_point_c
+        )]; // use cell id
+        var searched: Set<number> = new Set();
+
+        // store each cell's previous cell, index as cell id and value is 
+        // parent's id
+        var parent: number[] = new Array(this.rown * this.coln).fill(null);
+        parent[this.rc_to_cell_id(this.start_point_r, this.start_point_c)] = -1;
+
+        var reached_end = false;
+        // bfs start
+        while(!reached_end){
+            let current_cell = search_queue[0];
+            search_queue.shift();
+            searched.add(current_cell);
+            var r: number;
+            var c: number;
+            [r, c] = this.cell_id_to_rc(current_cell);
+            let current_walls = this.maze[r][c];
+
+            reached_end = (current_cell == this.rc_to_cell_id(
+                this.end_point_r, this.end_point_c
+            ))
+            
+            var up = (current_walls>>3) % 2 == 0;
+            var down = (current_walls>>2) % 2 == 0;
+            var left = (current_walls>>1) % 2 == 0;
+            var right = current_walls % 2 == 0;
+            if(up){
+                var up_cell = current_cell - this.coln;
+                if(!searched.has(up_cell)){
+                    parent[up_cell] = current_cell;
+                    search_queue.push(up_cell);
+                }
+            }
+            if(down){
+                var down_cell = current_cell + this.coln;
+                if(!searched.has(down_cell)){
+                    parent[down_cell] = current_cell;
+                    search_queue.push(down_cell);
+                }
+            }
+            if(left){
+                var left_cell = current_cell - 1;
+                if(!searched.has(left_cell)){
+                    parent[left_cell] = current_cell;
+                    search_queue.push(left_cell);
+                }
+            }
+            if(right){
+                var right_cell = current_cell + 1;
+                if(!searched.has(right_cell)){
+                    parent[right_cell] = current_cell;
+                    search_queue.push(right_cell);
+                }
+            }
+        }
+
+        // save path
+        var current_cell = parent[this.rc_to_cell_id(
+            this.end_point_r, this.end_point_c
+        )];
+        var start_cell_id = this.rc_to_cell_id(
+            this.start_point_r, this.start_point_c
+        );
+        while(current_cell != start_cell_id){
+            this.solution_path.push(this.cell_id_to_rc(current_cell));
+            current_cell = parent[current_cell];
+        }
+    }
+
+    reGen(){
+        this.solution_path = [];
+        this.maze = new Array(this.rown).fill(null)
+            .map(() => new Array(this.coln).fill(0b1111));
+        [this.start_point_r, this.start_point_c] = this.pick_random_point();
+        [this.end_point_r, this.end_point_c] = this.pick_random_point();
+
+
+        this.generate();
+        this.find_solution();
     }
 }
 
