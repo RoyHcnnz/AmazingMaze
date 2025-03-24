@@ -1,8 +1,8 @@
-enum Direction {
-    Up = 3,
-    Down = 2,
-    Left = 1,
-    Right = 0,
+export enum Direction {
+    UP = 3,
+    DOWN = 2,
+    LEFT = 1,
+    RIGHT = 0,
 }
 
 export class Maze{
@@ -15,6 +15,9 @@ export class Maze{
     end_point_c: number;
     solution_path: [number, number][];
 
+    player_r: number;
+    player_c: number;
+
     constructor(rown: number, coln: number){
         this.rown = rown;
         this.coln = coln;
@@ -24,10 +27,38 @@ export class Maze{
         [this.start_point_r, this.start_point_c] = this.pick_random_point();
         [this.end_point_r, this.end_point_c] = this.pick_random_point();
 
+        this.player_r = this.start_point_r;
+        this.player_c = this.start_point_c;
 
         this.generate();
         this.find_solution();
     }
+
+    move_player(direction: Direction){
+        var r = this.player_r;
+        var c = this.player_c;
+        if(direction == Direction.UP){
+            if(r>0 && (this.maze[r][c]>>3) % 2 == 0){
+                this.player_r = r - 1;
+            }
+        }
+        else if(direction == Direction.DOWN){
+            if(r<this.rown-1 && (this.maze[r][c]>>2) % 2 == 0){
+                this.player_r = r + 1;
+            }
+        }
+        else if(direction == Direction.LEFT){
+            if(c>0 && (this.maze[r][c]>>1) % 2 == 0){
+                this.player_c = c - 1;
+            }
+        }
+        else if(direction == Direction.RIGHT){
+            if(c<this.coln-1 && this.maze[r][c] % 2 == 0){
+                this.player_c = c + 1;
+            }
+        }
+    }
+
 
     // turn cell id to row and col
     cell_id_to_rc(id: number): [number, number]{
@@ -67,18 +98,18 @@ export class Maze{
 
         if(A_c == B_c){ // B is below A
             this.maze[A_r][A_c] = this.remove_wall(
-                this.maze[A_r][A_c], Direction.Down
+                this.maze[A_r][A_c], Direction.DOWN
             );
             this.maze[B_r][B_c] = this.remove_wall(
-                this.maze[B_r][B_c], Direction.Up
+                this.maze[B_r][B_c], Direction.UP
             );
         }
         else if(A_r == B_r){ // B on the right A
             this.maze[A_r][A_c] = this.remove_wall(
-                this.maze[A_r][A_c], Direction.Right
+                this.maze[A_r][A_c], Direction.RIGHT
             );
             this.maze[B_r][B_c] = this.remove_wall(
-                this.maze[B_r][B_c], Direction.Left
+                this.maze[B_r][B_c], Direction.LEFT
             );
         }
     }
@@ -232,6 +263,8 @@ export class Maze{
         [this.start_point_r, this.start_point_c] = this.pick_random_point();
         [this.end_point_r, this.end_point_c] = this.pick_random_point();
 
+        this.player_r = this.start_point_r;
+        this.player_c = this.start_point_c;
 
         this.generate();
         this.find_solution();

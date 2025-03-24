@@ -1,27 +1,34 @@
 import { GameObjects, Scene } from 'phaser';
 import { EventBus } from '../EventBus';
-import { Maze } from '../MazeCore/Maze';
+import { Maze, Direction } from '../MazeCore/Maze';
 
 export class Game extends Scene
 {
     cellWidth: number;
     maze: Maze;
-    currentGameDrawing: any[]; 
+    currentGameDrawing: GameObjects.Shape[]; 
     regenerateButton: GameObjects.Text;
+    player: GameObjects.Arc;
+    cursors: Phaser.Types.Input.Keyboard.CursorKeys;
+    offset_x: number;
+    offset_y: number;
+    playerMoved: boolean;
 
     constructor ()
     {
         super('Game');
         this.cellWidth = 15;
         this.maze = new Maze(40, 20);
-        this.currentGameDrawing = [];
+        this.currentGameDrawing = []; 
 
-        
+        this.offset_x = 10;
+        this.offset_y = 110;
+        this.playerMoved = false;
     }
 
     markCell(row: number, col: number, 
         offset_x: number, offset_y: number, 
-        color: number, alpha: number, primary?: boolean): void
+        color: number, alpha: number, primary?: boolean): GameObjects.Shape
     {
         if(primary){
             let draw = this.add.rectangle(
@@ -31,7 +38,7 @@ export class Game extends Scene
                 this.cellWidth-1, 
                 color, alpha
             ).setOrigin(0);
-            this.currentGameDrawing.push(draw);
+            return draw;
         }else{
             let draw = this.add.circle(
                 offset_x + col*this.cellWidth + this.cellWidth/2, 
@@ -39,9 +46,13 @@ export class Game extends Scene
                 this.cellWidth/4,
                 color, alpha
             );
-            this.currentGameDrawing.push(draw);
+            return draw;
         }
 
+    }
+
+    drawPlayer(offset_x: number, offset_y: number, r: number, c: number){
+        this.player = this.markCell(r, c, offset_x, offset_y, 0x0000ff, 1) as GameObjects.Arc;
     }
 
     drawMaze(offset_x: number, offset_y: number): 
@@ -56,10 +67,18 @@ export class Game extends Scene
                     this.maze.maze[r][c]
                 );
                 if(r == this.maze.start_point_r && c == this.maze.start_point_c){
-                    this.markCell(r, c, offset_x, offset_y, 0x008000, 0.5, true)
+                    let draw = this.markCell(
+                        r, c, offset_x, offset_y, 
+                        0x008000, 0.5, true
+                    );
+                    this.currentGameDrawing.push(draw);
                 }
                 if(r == this.maze.end_point_r && c == this.maze.end_point_c){
-                    this.markCell(r, c, offset_x, offset_y, 0xff0000, 0.5, true)
+                    let draw = this.markCell(
+                        r, c, offset_x, offset_y, 
+                        0xff0000, 0.5, true
+                    );
+                    this.currentGameDrawing.push(draw);
                 }
             }
         }
@@ -111,7 +130,8 @@ export class Game extends Scene
             var r: number;
             var c: number;
             [r, c] = cell_rc;
-            this.markCell(r, c, offset_x, offset_y, 0xffff00, 0.7);
+            let draw = this.markCell(r, c, offset_x, offset_y, 0xffff00, 0.7);
+            this.currentGameDrawing.push(draw);
         })
     }
 
@@ -123,6 +143,8 @@ export class Game extends Scene
         this.maze.reGen();
         this.drawMaze(10, 110);
         this.drawPath(10, 110);
+        this.updatePlayer();
+        this.playerMoved = false;
     }
 
     preload ()
@@ -134,8 +156,48 @@ export class Game extends Scene
         this.load.image('logo', 'logo.png');
     }
 
+    updatePlayer(){
+        this.player.x = this.offset_x 
+                        + this.maze.player_c*this.cellWidth 
+                        + this.cellWidth/2;
+        this.player.y = this.offset_y 
+                        + this.maze.player_r*this.cellWidth 
+                        + this.cellWidth/2;   
+    }
+
+    update(){
+        if(this.playerMoved){
+            this.updatePlayer();
+            this.playerMoved = false;
+        }
+    }
+
     create ()
     {
+        this.input.keyboard?.on(
+            'keydown-UP', () => {
+                this.maze.move_player(Direction.UP);
+                this.playerMoved = true;
+            }, this
+        );
+        this.input.keyboard?.on(
+            'keydown-DOWN', () => {
+                this.maze.move_player(Direction.DOWN);
+                this.playerMoved = true;
+            }, this
+        );
+        this.input.keyboard?.on(
+            'keydown-LEFT', () => {
+                this.maze.move_player(Direction.LEFT);
+                this.playerMoved = true;
+            }, this
+        );
+        this.input.keyboard?.on(
+            'keydown-RIGHT', () => {
+                this.maze.move_player(Direction.RIGHT);
+                this.playerMoved = true;
+            }, this
+        );
         this.regenerateButton = this.add.text(
             10, 10, 
             'New Maze', 
@@ -147,8 +209,14 @@ export class Game extends Scene
         }).on('pointerdown', () => {
             this.regenerateMaze();
         });
-        this.drawMaze(10, 110);
-        this.drawPath(10, 110);
+        if(this.input.keyboard){
+            this.cursors = this.input.keyboard?.createCursorKeys();
+        }else{
+            console.log('no keyboard');
+        }
+        this.drawMaze(this.offset_x, this.offset_y);
+        this.drawPath(this.offset_x, this.offset_y);
+        this.drawPlayer(this.offset_x, this.offset_y, this.maze.start_point_r, this.maze.start_point_c);
         EventBus.emit('current-scene-ready', this);
 
 
