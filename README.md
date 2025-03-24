@@ -4,17 +4,6 @@ This is a Phaser 3 project template that uses the Vue framework, TypeScript and 
 
 **[This Template is also available as a JavaScript version.](https://github.com/phaserjs/template-vue)**
 
-### Versions
-
-This template has been updated for:
-
-- [Phaser 3.88.2](https://github.com/phaserjs/phaser)
-- [Vue 3.4.27](https://github.com/vuejs)
-- [Vite 5.2.11](https://github.com/vitejs/vite)
-- [TypeScript 5.3.3](https://github.com/microsoft/TypeScript)
-
-![screenshot](screenshot.png)
-
 ## Requirements
 
 [Node.js](https://nodejs.org) is required to install dependencies and run scripts via `npm`.
@@ -28,14 +17,6 @@ This template has been updated for:
 | `npm run build` | Create a production build in the `dist` folder |
 | `npm run dev-nolog` | Launch a development web server without sending anonymous data (see "About log.js" below) |
 | `npm run build-nolog` | Create a production build in the `dist` folder without sending anonymous data (see "About log.js" below) |
-
-## Writing Code
-
-After cloning the repo, run `npm install` from your project directory. Then, you can start the local development server by running `npm run dev`.
-
-The local development server runs on `http://localhost:8080` by default. Please see the Vite documentation if you wish to change this, or add SSL support.
-
-Once the server is running you can edit any of the files in the `src` folder. Vite will automatically recompile your code and then reload the browser.
 
 ## Template Project Structure
 
