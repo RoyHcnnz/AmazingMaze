@@ -33,7 +33,6 @@ export class Maze{
         this.maze = new Array(rown).fill(null)
             .map(() => new Array(coln).fill(0b1111));
         [this.start_point_r, this.start_point_c] = this.pick_random_point();
-        [this.end_point_r, this.end_point_c] = this.pick_random_point();
 
         this.player_r = this.start_point_r;
         this.player_c = this.start_point_c;
@@ -48,22 +47,46 @@ export class Maze{
         var c = this.player_c;
         if(direction == Direction.UP){
             if(r>0 && (this.maze[r][c]>>3) % 2 == 0){
-                this.player_r = r - 1;
+                r = r - 1;
+                while(r>0 && (this.maze[r][c] == 0b0011) 
+                    && (r != this.end_point_r || c != this.end_point_c)
+                ){
+                    r = r - 1;
+                }
+                this.player_r = r;
             }
         }
         else if(direction == Direction.DOWN){
             if(r<this.rown-1 && (this.maze[r][c]>>2) % 2 == 0){
-                this.player_r = r + 1;
+                r = r + 1;
+                while(r<this.rown-1 && (this.maze[r][c] == 0b0011)
+                    && (r != this.end_point_r || c != this.end_point_c)
+                ){
+                    r = r + 1;
+                }
+                this.player_r = r;
             }
         }
         else if(direction == Direction.LEFT){
             if(c>0 && (this.maze[r][c]>>1) % 2 == 0){
-                this.player_c = c - 1;
+                c = c - 1;
+                while(c>0 && (this.maze[r][c] == 0b1100)
+                    && (r != this.end_point_r || c != this.end_point_c)
+                ){
+                    c = c - 1;
+                }
+                this.player_c = c;
             }
         }
         else if(direction == Direction.RIGHT){
             if(c<this.coln-1 && this.maze[r][c] % 2 == 0){
-                this.player_c = c + 1;
+                c = c + 1;
+                while(c<this.coln-1 && (this.maze[r][c] == 0b1100)
+                    && (r != this.end_point_r || c != this.end_point_c)
+                ){
+                    c = c + 1;
+                }
+                this.player_c = c;
             }
         }
         if(this.player_r == this.end_point_r && 
@@ -128,6 +151,83 @@ export class Maze{
     }
 
     generate(){
+        // this.generate_by_Prim();
+        this.generate_by_DFS();
+    }
+
+    // use DFS to generate maze
+    // and try generate end cell after depth > (rown + coln) * 2 if failed, 
+    // then pick a random cell
+    // problem: the main path doesn't have enough branches
+    generate_by_DFS(){
+        var currentPath: number[] = [this.rc_to_cell_id(
+            this.start_point_r, this.start_point_c
+        )];
+        var reached: number[] = [this.rc_to_cell_id(
+            this.start_point_r, this.start_point_c
+        )];
+        var depth = 0;
+        var end_set = false;
+        var max_depth = depth; // for debug
+        while(reached.length < this.rown * this.coln){
+            if(depth > max_depth){ // for debug
+                max_depth = depth;
+                console.log(max_depth);
+            }
+            var currentCell = currentPath[currentPath.length - 1];
+            var r: number;
+            var c: number;
+            [r, c] = this.cell_id_to_rc(currentCell);
+            if(!end_set && depth > (this.rown + this.coln) * 2){
+                let p = Math.random();
+                console.log("p = ", depth/(this.rown * this.coln * 4));
+                if(p<depth/(this.rown * this.coln * 4)){
+                    [this.end_point_r, this.end_point_c] = [r, c];
+                    end_set = true;
+                }
+            }
+            var available_neighbors: number[] = [];
+            // up
+            if (r>0 && !reached.includes(this.rc_to_cell_id(r-1, c)) ){
+                available_neighbors.push(this.rc_to_cell_id(r-1, c))
+            }
+            // down
+            if (r<this.rown-1 && !reached.includes(this.rc_to_cell_id(r+1, c))){ 
+                available_neighbors.push(this.rc_to_cell_id(r+1, c))
+            }
+            // left
+            if (c>0 && !reached.includes(this.rc_to_cell_id(r, c-1)) ){ 
+                available_neighbors.push(this.rc_to_cell_id(r, c-1))
+            }
+            // right
+            if (c<this.coln-1 && !reached.includes(this.rc_to_cell_id(r, c+1))){ 
+                available_neighbors.push(this.rc_to_cell_id(r, c+1))
+            }
+            // if no neighbors, pop from path
+            if(available_neighbors.length == 0){
+                currentPath.pop();
+                depth--;
+            }
+            else{
+                depth++;
+                let random_idx = Math.floor(
+                    Math.random() * available_neighbors.length
+                );
+                var nextCell = available_neighbors[random_idx];
+                this.connnect_neighbors(currentCell, nextCell);
+                currentPath.push(nextCell);
+                reached.push(nextCell);
+            }
+        }
+        if(!end_set){
+            [this.end_point_r, this.end_point_c] = this.pick_random_point();
+        }
+    }
+
+    // use Prim's algorithm to generate maze
+    // problem: maze too easy, not enough tortuous
+    generate_by_Prim(){
+        [this.end_point_r, this.end_point_c] = this.pick_random_point();
         var frontier: number[] = [this.rc_to_cell_id(
             this.start_point_r, this.start_point_c
         )];
@@ -195,6 +295,7 @@ export class Maze{
         }
     }
 
+    // TDDO: find solution from the player's position to the end point instead of start point
     find_solution(){
         // bfs
         var search_queue: number[] = [this.rc_to_cell_id(
