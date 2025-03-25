@@ -5,7 +5,13 @@ export enum Direction {
     RIGHT = 0,
 }
 
+enum Status {
+    IN_PROGRESS,
+    FINISHED
+}
+
 export class Maze{
+
     maze: number[][];
     rown: number;
     coln: number;
@@ -17,6 +23,8 @@ export class Maze{
 
     player_r: number;
     player_c: number;
+
+    status: Status;
 
     constructor(rown: number, coln: number){
         this.rown = rown;
@@ -32,6 +40,7 @@ export class Maze{
 
         this.generate();
         this.find_solution();
+        this.status = Status.IN_PROGRESS;
     }
 
     move_player(direction: Direction){
@@ -56,6 +65,10 @@ export class Maze{
             if(c<this.coln-1 && this.maze[r][c] % 2 == 0){
                 this.player_c = c + 1;
             }
+        }
+        if(this.player_r == this.end_point_r && 
+            this.player_c == this.end_point_c){
+            this.status = Status.FINISHED;
         }
     }
 
@@ -268,6 +281,11 @@ export class Maze{
 
         this.generate();
         this.find_solution();
+        this.status = Status.IN_PROGRESS;
+    }
+
+    game_over(){
+        return this.status == Status.FINISHED;
     }
 }
 

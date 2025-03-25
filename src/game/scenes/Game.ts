@@ -6,7 +6,8 @@ export class Game extends Scene
 {
     cellWidth: number;
     maze: Maze;
-    currentGameDrawing: GameObjects.Shape[]; 
+    mazeDrawing: GameObjects.Shape[]; 
+    pathDrawing: GameObjects.Arc[];
     regenerateButton: GameObjects.Text;
     player: GameObjects.Arc;
     cursors: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -14,12 +15,16 @@ export class Game extends Scene
     offset_y: number;
     playerMoved: boolean;
 
+    score: number = 0;
+    scroeBoard: GameObjects.Text;
+
     constructor ()
     {
         super('Game');
         this.cellWidth = 15;
         this.maze = new Maze(40, 20);
-        this.currentGameDrawing = []; 
+        this.mazeDrawing = []; 
+        this.pathDrawing = [];
 
         this.offset_x = 10;
         this.offset_y = 110;
@@ -32,10 +37,10 @@ export class Game extends Scene
     {
         if(primary){
             let draw = this.add.rectangle(
-                offset_x + col*this.cellWidth, 
-                offset_y + row*this.cellWidth, 
-                this.cellWidth-1, 
-                this.cellWidth-1, 
+                offset_x + col*this.cellWidth + 2, 
+                offset_y + row*this.cellWidth + 2, 
+                this.cellWidth - 1, 
+                this.cellWidth - 1, 
                 color, alpha
             ).setOrigin(0);
             return draw;
@@ -67,18 +72,18 @@ export class Game extends Scene
                     this.maze.maze[r][c]
                 );
                 if(r == this.maze.start_point_r && c == this.maze.start_point_c){
-                    let draw = this.markCell(
+                    let starting_cell = this.markCell(
                         r, c, offset_x, offset_y, 
                         0x008000, 0.5, true
                     );
-                    this.currentGameDrawing.push(draw);
+                    this.mazeDrawing.push(starting_cell);
                 }
                 if(r == this.maze.end_point_r && c == this.maze.end_point_c){
-                    let draw = this.markCell(
+                    let ending_cell = this.markCell(
                         r, c, offset_x, offset_y, 
                         0xff0000, 0.5, true
                     );
-                    this.currentGameDrawing.push(draw);
+                    this.mazeDrawing.push(ending_cell);
                 }
             }
         }
@@ -96,7 +101,7 @@ export class Game extends Scene
                 x, y, 
                 x+this.cellWidth, y, 
                 0x000000).setOrigin(0);
-            this.currentGameDrawing.push(edge);
+            this.mazeDrawing.push(edge);
         }
         if(down){
             let edge = this.add.line(
@@ -104,7 +109,7 @@ export class Game extends Scene
                 x, y+this.cellWidth, 
                 x+this.cellWidth, y+this.cellWidth, 
                 0x000000).setOrigin(0);
-            this.currentGameDrawing.push(edge);
+            this.mazeDrawing.push(edge);
         }
         if(left){
             let edge = this.add.line(
@@ -112,7 +117,7 @@ export class Game extends Scene
                 x, y, 
                 x, y+this.cellWidth, 
                 0x000000).setOrigin(0);
-            this.currentGameDrawing.push(edge);
+            this.mazeDrawing.push(edge);
         }
         if(right){
             let edge = this.add.line(
@@ -121,7 +126,7 @@ export class Game extends Scene
                 y, x+this.cellWidth, 
                 y+this.cellWidth, 
                 0x000000).setOrigin(0);
-            this.currentGameDrawing.push(edge);
+            this.mazeDrawing.push(edge);
         }
     }
 
@@ -130,16 +135,22 @@ export class Game extends Scene
             var r: number;
             var c: number;
             [r, c] = cell_rc;
-            let draw = this.markCell(r, c, offset_x, offset_y, 0xffff00, 0.7);
-            this.currentGameDrawing.push(draw);
+            let draw = this.markCell(r, c, offset_x, offset_y, 0xffff00, 0.7) as GameObjects.Arc;
+            //hide draw
+            draw.visible = false;
+            this.pathDrawing.push(draw);
         })
     }
 
     regenerateMaze(){
-        this.currentGameDrawing.map((item) => {
+        this.mazeDrawing.map((item) => {
             item.destroy();
         });
-        this.currentGameDrawing = [];
+        this.mazeDrawing = [];
+        this.pathDrawing.map((item) => {
+            item.destroy();
+        });
+        this.pathDrawing = [];
         this.maze.reGen();
         this.drawMaze(10, 110);
         this.drawPath(10, 110);
@@ -162,13 +173,18 @@ export class Game extends Scene
                         + this.cellWidth/2;
         this.player.y = this.offset_y 
                         + this.maze.player_r*this.cellWidth 
-                        + this.cellWidth/2;   
+                            + this.cellWidth/2;   
     }
 
     update(){
         if(this.playerMoved){
             this.updatePlayer();
             this.playerMoved = false;
+            if(this.maze.game_over()){
+                this.score += 1;
+                this.scroeBoard.setText('Score: ' + this.score);
+                this.regenerateMaze();
+            }
         }
     }
 
@@ -209,6 +225,21 @@ export class Game extends Scene
         }).on('pointerdown', () => {
             this.regenerateMaze();
         });
+
+        var pathButton = this.add.text(
+            10, 40, 
+            'show/hide path', 
+            { font: '16px Courier', color: '#00ff00' }
+        ).setInteractive().on('pointerover', () => {
+            pathButton.setStyle({ fill: '#ff0'});
+        }).on('pointerout', () => {
+            pathButton.setStyle({ fill: '#00ff00'});
+        }).on('pointerdown', () => {
+            this.pathDrawing.map((item) => {
+                item.visible = !item.visible;
+            })
+        });
+        this.scroeBoard = this.add.text( 160, 10, 'Score: ' + this.score, { font: '16px Courier', color: '#00ff00' });
         if(this.input.keyboard){
             this.cursors = this.input.keyboard?.createCursorKeys();
         }else{
