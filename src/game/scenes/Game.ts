@@ -131,15 +131,22 @@ export class Game extends Scene
     }
 
     drawPath(offset_x: number, offset_y: number){
-        this.maze.solution_path.map((cell_rc) => {
+        var path = this.maze.find_solution();
+        path.map((cell_rc) => {
             var r: number;
             var c: number;
             [r, c] = cell_rc;
             let draw = this.markCell(r, c, offset_x, offset_y, 0xffff00, 0.7) as GameObjects.Arc;
             //hide draw
-            draw.visible = false;
             this.pathDrawing.push(draw);
         })
+    }
+
+    removePath(){
+        this.pathDrawing.map((item) => {
+            item.destroy();
+        });
+        this.pathDrawing = [];
     }
 
     regenerateMaze(){
@@ -153,9 +160,16 @@ export class Game extends Scene
         this.pathDrawing = [];
         this.maze.reGen();
         this.drawMaze(10, 110);
-        this.drawPath(10, 110);
         this.updatePlayer();
         this.playerMoved = false;
+    }
+
+    updateMaze(){
+        this.mazeDrawing.map((item) => {
+            item.destroy();
+        });
+        this.mazeDrawing = [];
+        this.drawMaze(this.offset_x, this.offset_y);
     }
 
     preload ()
@@ -235,10 +249,26 @@ export class Game extends Scene
         }).on('pointerout', () => {
             pathButton.setStyle({ fill: '#00ff00'});
         }).on('pointerdown', () => {
-            this.pathDrawing.map((item) => {
-                item.visible = !item.visible;
-            })
+            if(this.pathDrawing.length == 0){
+                this.drawPath(this.offset_x, this.offset_y);
+            }else{
+                this.removePath();
+            }
         });
+
+        var addComplexityButton = this.add.text(
+            10, 70, 
+            'add complexity', 
+            { font: '16px Courier', color: '#00ff00' }
+        ).setInteractive().on('pointerover', () => {
+            addComplexityButton.setStyle({ fill: '#ff0'});
+        }).on('pointerout', () => {
+            addComplexityButton.setStyle({ fill: '#00ff00'});
+        }).on('pointerdown', () => {
+            this.maze.add_complexity(50);
+            this.updateMaze();
+        });
+
         this.scroeBoard = this.add.text( 160, 10, 'Score: ' + this.score, { font: '16px Courier', color: '#00ff00' });
         if(this.input.keyboard){
             this.cursors = this.input.keyboard?.createCursorKeys();
@@ -246,7 +276,6 @@ export class Game extends Scene
             console.log('no keyboard');
         }
         this.drawMaze(this.offset_x, this.offset_y);
-        this.drawPath(this.offset_x, this.offset_y);
         this.drawPlayer(this.offset_x, this.offset_y, this.maze.start_point_r, this.maze.start_point_c);
         EventBus.emit('current-scene-ready', this);
 
