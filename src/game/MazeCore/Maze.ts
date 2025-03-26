@@ -19,14 +19,13 @@ export class Maze{
     start_point_c: number;
     end_point_r: number;
     end_point_c: number;
+    status: Status;
     // solution_path: [number, number][];
 
-    parent: number[]; // use cell id, index as cell and value as it's parent
+    private parent: number[]; // use cell id, index as cell and value as it's parent
 
     player_r: number;
     player_c: number;
-
-    status: Status;
 
     constructor(rown: number, coln: number){
         this.rown = rown;
@@ -196,7 +195,7 @@ export class Maze{
     generate(){
         //this.generate_by_Prim();
         this.generate_by_DFS();
-        this.add_complexity(1000);
+        this.shift_origin(1000);
         //while(this.find_solution().length < (this.rown + this.coln)/2){
         //    this.add_complexity();
         //}
@@ -345,7 +344,8 @@ export class Maze{
         }
     }
 
-    add_complexity(times?: number){
+    // shift origin, require to have a perfect maze before
+    shift_origin(times?: number){
         if (typeof times === "undefined") {    
             times = 1
         }

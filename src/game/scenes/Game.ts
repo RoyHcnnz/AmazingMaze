@@ -1,6 +1,7 @@
 import { GameObjects, Scene } from 'phaser';
 import { EventBus } from '../EventBus';
 import { Maze, Direction } from '../MazeCore/Maze';
+import { Swipe, SwipeDirection } from '../Swipe';
 
 export class Game extends Scene
 {
@@ -204,6 +205,32 @@ export class Game extends Scene
 
     create ()
     {
+        const swipe = new Swipe(
+            this, 
+            (direction: SwipeDirection) => {
+                if(direction == SwipeDirection.UP){
+                    this.maze.move_player(Direction.UP);
+                    this.playerMoved = true;
+                    console.log('up')
+                }
+                if(direction == SwipeDirection.DOWN){
+                    this.maze.move_player(Direction.DOWN);
+                    this.playerMoved = true;
+                    console.log('down')
+                }
+                if(direction == SwipeDirection.LEFT){
+                    this.maze.move_player(Direction.LEFT);
+                    this.playerMoved = true;
+                    console.log('left')
+                    
+                }
+                if(direction == SwipeDirection.RIGHT){
+                    this.maze.move_player(Direction.RIGHT);
+                    this.playerMoved = true;
+                    console.log('right')
+                }
+            }
+        )
         this.input.keyboard?.on(
             'keydown-UP', () => {
                 this.maze.move_player(Direction.UP);
@@ -265,7 +292,7 @@ export class Game extends Scene
         }).on('pointerout', () => {
             addComplexityButton.setStyle({ fill: '#00ff00'});
         }).on('pointerdown', () => {
-            this.maze.add_complexity(50);
+            this.maze.shift_origin(50);
             this.updateMaze();
         });
 
