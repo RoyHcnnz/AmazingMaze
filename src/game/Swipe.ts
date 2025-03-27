@@ -12,6 +12,8 @@ export class Swipe{
     swipeCallAction: (direction: SwipeDirection) => void;
     pointerDownLoc: [number, number];
     pointerUpLoc: [number, number];
+    sensitivity: number; // the distance in pixels one has to swipe to get 
+    // recogniced as a swipe
 
     effectArea_up?: number;
     effectArea_down?: number;
@@ -26,8 +28,14 @@ export class Swipe{
         effectArea_up?: number,
         effectArea_down?: number,
         effectArea_left?: number,
-        effectArea_right?: number
+        effectArea_right?: number,
+        sensitivity?: number
     ){
+        if(sensitivity){
+            this.sensitivity = sensitivity;
+        }else{
+            this.sensitivity = 60;
+        }
         this.scene = scene;
         this.effectArea_up = effectArea_up;
         this.effectArea_down = effectArea_down;
@@ -73,7 +81,7 @@ export class Swipe{
         var x_movement = this.pointerUpLoc[0] - this.pointerDownLoc[0];
         var y_movement = this.pointerUpLoc[1] - this.pointerDownLoc[1];
         if(Math.abs(x_movement) > Math.abs(y_movement) 
-            && Math.abs(x_movement)> 100)
+            && Math.abs(x_movement)> this.sensitivity)
         {
             if(x_movement > 0){
                 return SwipeDirection.RIGHT;
@@ -82,7 +90,7 @@ export class Swipe{
             }
         }
         if(Math.abs(y_movement) > Math.abs(x_movement) 
-            && Math.abs(y_movement)> 100)
+            && Math.abs(y_movement)> this.sensitivity)
         {
             if(y_movement > 0){
                 return SwipeDirection.DOWN;

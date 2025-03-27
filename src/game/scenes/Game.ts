@@ -10,6 +10,7 @@ export class Game extends Scene
     mazeDrawing: GameObjects.Shape[]; 
     pathDrawing: GameObjects.Arc[];
     regenerateButton: GameObjects.Text;
+    algorithm: GameObjects.Text;
     player: GameObjects.Arc;
     cursors: Phaser.Types.Input.Keyboard.CursorKeys;
     offset_x: number;
@@ -61,8 +62,7 @@ export class Game extends Scene
         this.player = this.markCell(r, c, offset_x, offset_y, 0x0000ff, 1) as GameObjects.Arc;
     }
 
-    drawMaze(offset_x: number, offset_y: number): 
-    void{
+    drawMaze(offset_x: number, offset_y: number): void{
         var rown = this.maze.rown;
         var coln = this.maze.coln;
         for(let r:number = 0; r<rown; r++){
@@ -160,6 +160,7 @@ export class Game extends Scene
         });
         this.pathDrawing = [];
         this.maze.reGen();
+        this.algorithm.setText(this.maze.algorithm);
         this.drawMaze(10, 110);
         this.updatePlayer();
         this.playerMoved = false;
@@ -211,23 +212,19 @@ export class Game extends Scene
                 if(direction == SwipeDirection.UP){
                     this.maze.move_player(Direction.UP);
                     this.playerMoved = true;
-                    console.log('up')
                 }
                 if(direction == SwipeDirection.DOWN){
                     this.maze.move_player(Direction.DOWN);
                     this.playerMoved = true;
-                    console.log('down')
                 }
                 if(direction == SwipeDirection.LEFT){
                     this.maze.move_player(Direction.LEFT);
                     this.playerMoved = true;
-                    console.log('left')
                     
                 }
                 if(direction == SwipeDirection.RIGHT){
                     this.maze.move_player(Direction.RIGHT);
                     this.playerMoved = true;
-                    console.log('right')
                 }
             }
         )
@@ -283,18 +280,10 @@ export class Game extends Scene
             }
         });
 
-        var addComplexityButton = this.add.text(
-            10, 70, 
-            'add complexity', 
+        this.algorithm = this.add.text(
+            10, 70, "algorithm: " + this.maze.algorithm,  
             { font: '16px Courier', color: '#00ff00' }
-        ).setInteractive().on('pointerover', () => {
-            addComplexityButton.setStyle({ fill: '#ff0'});
-        }).on('pointerout', () => {
-            addComplexityButton.setStyle({ fill: '#00ff00'});
-        }).on('pointerdown', () => {
-            this.maze.shift_origin(50);
-            this.updateMaze();
-        });
+        );
 
         this.scroeBoard = this.add.text( 160, 10, 'Score: ' + this.score, { font: '16px Courier', color: '#00ff00' });
         if(this.input.keyboard){
