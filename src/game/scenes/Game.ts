@@ -159,7 +159,7 @@ export class Game extends Scene
             item.destroy();
         });
         this.pathDrawing = [];
-        this.maze.reGen();
+        this.maze.createMaze();
         this.algorithm.setText(this.maze.algorithm);
         this.drawMaze(10, 110);
         this.updatePlayer();
@@ -206,6 +206,7 @@ export class Game extends Scene
 
     create ()
     {
+        this.maze.createMaze();
         const swipe = new Swipe(
             this, 
             (direction: SwipeDirection) => {

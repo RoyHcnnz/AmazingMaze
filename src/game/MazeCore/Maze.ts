@@ -6,7 +6,8 @@ export enum Direction {
 }
 
 enum Status {
-    IN_PROGRESS,
+    PREPARING,
+    IN_PLAY,
     FINISHED
 }
 
@@ -35,20 +36,51 @@ export class Maze{
         this.parent = new Array(rown * coln).fill(-1);
         this.maze = new Array(rown).fill(null)
             .map(() => new Array(coln).fill(0b1111));
+        this.status = Status.PREPARING;
         // comfirm end point first and after created maze, pick a random 
         // start cell
         // so that all cells can follow their parent to reach end point
-        [this.end_point_r, this.end_point_c] = this.pick_random_point();
-        this.generate();
-        this.pick_start_cell();
 
         // pick start point
         //[this.start_point_r, this.start_point_c] = this.pick_random_point();
+    }
+
+    *mazeGenerator(){
+        [this.end_point_r, this.end_point_c] = this.pick_random_point();
+        this.maze = new Array(this.rown).fill(null)
+            .map(() => new Array(this.coln).fill(0b1111));
+        [this.end_point_r, this.end_point_c] = this.pick_random_point();
+        this.parent = new Array(this.rown * this.coln).fill(-1);
+
+        //this.generate();
+
+
+        this.pick_start_cell();
 
         this.player_r = this.start_point_r;
         this.player_c = this.start_point_c;
 
-        this.status = Status.IN_PROGRESS;
+        this.status = Status.IN_PLAY;
+    }
+
+    createMaze(){
+        [this.end_point_r, this.end_point_c] = this.pick_random_point();
+        this.maze = new Array(this.rown).fill(null)
+            .map(() => new Array(this.coln).fill(0b1111));
+        [this.end_point_r, this.end_point_c] = this.pick_random_point();
+        this.parent = new Array(this.rown * this.coln).fill(-1);
+
+        var gen = this.generate();
+        var res = gen.next();
+        while(!res.done){
+            res = gen.next();
+        }
+        this.pick_start_cell();
+
+        this.player_r = this.start_point_r;
+        this.player_c = this.start_point_c;
+
+        this.status = Status.IN_PLAY;
     }
 
     move_player(direction: Direction){
@@ -230,32 +262,44 @@ export class Maze{
         [this.start_point_r, this.start_point_c] = this.cell_id_to_rc(start_cell);
     }
 
-    generate(){
-        //this.generate_by_Prim();
-        /*
-        */
+    *generate(){
         var i = Math.floor(Math.random()*3);
         if(i == 0){
-            this.generate_by_growing_tree();
             this.algorithm = "Growing Tree";
+            var gen = this.generate_by_growing_tree();
+            var res = gen.next();var res = gen.next();
+            while(!res.done){
+                res = gen.next();
+                yield;
+            }
         }else if(i == 1){
-            this.generate_by_DFS();
-            this.shift_origin(1000);
             this.algorithm = "DFS + Shift Origin 1000";
+            var gen = this.generate_by_DFS();
+            var res = gen.next();
+            while(!res.done){
+                res = gen.next();
+                yield;
+            }
+            for(var i = 0; i < 10; i++){
+                this.shift_origin(100);
+                yield;
+            }
         }else{
-            this.generate_by_Prim();
-            this.algorithm = "Prim's"
+            this.algorithm = "Prim's";
+            var gen = this.generate_by_Prim();
+            var res = gen.next();
+            while(!res.done){
+                res = gen.next();
+                yield;
+            }
         }
-        //while(this.find_solution().length < (this.rown + this.coln)/2){
-        //    this.add_complexity();
-        //}
     }
 
     // use DFS to generate maze
     // and try generate end cell after depth > (rown + coln) * 2 if failed, 
     // then pick a random cell
     // problem: the main path doesn't have enough branches
-    generate_by_DFS(){
+    *generate_by_DFS(){
         var currentPath: number[] = [this.rc_to_cell_id(
             this.end_point_r, this.end_point_c
         )];
@@ -264,10 +308,6 @@ export class Maze{
         )];
         //var max_depth = depth; // for debug
         while(reached.length < this.rown * this.coln){
-            //if(depth > max_depth){ // for debug
-            //    max_depth = depth;
-            //    console.log(max_depth);
-            //}
             var currentCell = currentPath[currentPath.length - 1];
             var r: number;
             var c: number;
@@ -303,12 +343,13 @@ export class Maze{
                 currentPath.push(nextCell);
                 reached.push(nextCell);
             }
+            yield;
         }
     }
 
     // use Prim's algorithm to generate maze
     // problem: maze too easy, not enough tortuous
-    generate_by_Prim(){
+    *generate_by_Prim(){
         //[this.end_point_r, this.end_point_c] = this.pick_random_point();
         var frontier: number[] = [this.rc_to_cell_id(
             this.end_point_r, this.end_point_c
@@ -376,17 +417,18 @@ export class Maze{
                     frontier.splice(index, 1);
                 }
             }
+            yield;
         }
     }
 
-    generate_by_growing_tree(branch_length: number = 4){
+    *generate_by_growing_tree(branch_length: number = 4){
         var reached_cell: Set<number> = new Set(
             [this.rc_to_cell_id(this.end_point_r, this.end_point_c)]
         );
         var select_pool: Set<number> = new Set(
             [this.rc_to_cell_id(this.end_point_r, this.end_point_c)]
         );
-
+ 
         while(reached_cell.size < this.rown * this.coln){
             // random select from pool and remove
             // span four neigbors, add to reached and pool
@@ -403,34 +445,49 @@ export class Maze{
                 [r, c] = this.cell_id_to_rc(current_cell);
                 var available_neighbors: number[] = [];
                 // up
-                if (r>0 && !reached_cell.has(this.rc_to_cell_id(r-1, c)) ){
-                    available_neighbors.push(this.rc_to_cell_id(r-1, c))
+                if (
+                    r > 0 
+                    && !reached_cell.has(this.rc_to_cell_id(r - 1, c)) 
+                ){
+                    available_neighbors.push(this.rc_to_cell_id(r - 1, c))
                 }
                 // down
-                if (r<this.rown-1 && !reached_cell.has(this.rc_to_cell_id(r+1, c)) ){ 
-                    available_neighbors.push(this.rc_to_cell_id(r+1, c))
+                if (
+                    r < this.rown - 1 
+                    && !reached_cell.has(this.rc_to_cell_id(r + 1, c)) 
+                ){ 
+                    available_neighbors.push(this.rc_to_cell_id(r + 1, c))
                 }
                 // left
-                if (c>0 && !reached_cell.has(this.rc_to_cell_id(r, c-1)) ){ 
-                    available_neighbors.push(this.rc_to_cell_id(r, c-1))
+                if (
+                    c > 0 
+                    && !reached_cell.has(this.rc_to_cell_id(r, c - 1)) 
+                ){ 
+                    available_neighbors.push(this.rc_to_cell_id(r, c - 1))
                 }
                 // right
-                if (c<this.coln-1 && !reached_cell.has(this.rc_to_cell_id(r, c+1)) ){ 
-                    available_neighbors.push(this.rc_to_cell_id(r, c+1))
+                if (
+                    c < this.coln-1 
+                    && !reached_cell.has(this.rc_to_cell_id(r, c + 1)) 
+                ){ 
+                    available_neighbors.push(this.rc_to_cell_id(r, c + 1))
                 }
 
                 if(available_neighbors.length == 0){
                     no_space = true;
                 }else{
-                    var next_cell = available_neighbors[Math.floor(Math.random() * available_neighbors.length)];
+                    var next_cell = available_neighbors[
+                        Math.floor(Math.random() * available_neighbors.length)
+                    ];
 
                     this.connnect_neighbors(current_cell, next_cell);
 
-                    this.parent[next_cell] =  current_cell;
+                    this.parent[next_cell] = current_cell;
                     select_pool.add(next_cell);
                     reached_cell.add(next_cell);
                     current_cell = next_cell;
                 }
+                yield;
             }
         }
 
@@ -490,21 +547,6 @@ export class Maze{
             current_cell_id = this.parent[current_cell_id];
         }
         return path_rc;
-    }
-
-    reGen(){
-        this.maze = new Array(this.rown).fill(null)
-            .map(() => new Array(this.coln).fill(0b1111));
-        [this.end_point_r, this.end_point_c] = this.pick_random_point();
-        this.parent = new Array(this.rown * this.coln).fill(-1);
-
-        this.generate();
-        this.pick_start_cell();
-
-        this.player_r = this.start_point_r;
-        this.player_c = this.start_point_c;
-
-        this.status = Status.IN_PROGRESS;
     }
 
     game_over(){
