@@ -83,9 +83,14 @@ export class Maze{
         this.status = Status.IN_PLAY;
     }
 
-    move_player(direction: Direction){
+    // return ture of moved
+    move_player(direction: Direction): boolean{
+        if(this.status != Status.IN_PLAY){
+            return false;
+        }
         var r = this.player_r;
         var c = this.player_c;
+        var moved = false;
         if(direction == Direction.UP){
             if(r>0 && (this.maze[r][c]>>3) % 2 == 0){
                 r = r - 1;
@@ -95,6 +100,7 @@ export class Maze{
                     r = r - 1;
                 }
                 this.player_r = r;
+                moved = true;
             }
         }
         else if(direction == Direction.DOWN){
@@ -106,6 +112,7 @@ export class Maze{
                     r = r + 1;
                 }
                 this.player_r = r;
+                moved = true;
             }
         }
         else if(direction == Direction.LEFT){
@@ -117,6 +124,7 @@ export class Maze{
                     c = c - 1;
                 }
                 this.player_c = c;
+                moved = true;
             }
         }
         else if(direction == Direction.RIGHT){
@@ -128,12 +136,14 @@ export class Maze{
                     c = c + 1;
                 }
                 this.player_c = c;
+                moved = true;
             }
         }
         if(this.player_r == this.end_point_r && 
             this.player_c == this.end_point_c){
             this.status = Status.FINISHED;
         }
+        return moved;
     }
 
     // turn cell id to row and col
@@ -263,11 +273,20 @@ export class Maze{
     }
 
     *generate(){
+        [this.end_point_r, this.end_point_c] = this.pick_random_point();
+        this.maze = new Array(this.rown).fill(null)
+            .map(() => new Array(this.coln).fill(0b1111));
+        [this.end_point_r, this.end_point_c] = this.pick_random_point();
+        this.parent = new Array(this.rown * this.coln).fill(-1);
+
+
+        [this.end_point_r, this.end_point_c] = this.pick_random_point();
+        console.log('start gen')
         var i = Math.floor(Math.random()*3);
         if(i == 0){
             this.algorithm = "Growing Tree";
             var gen = this.generate_by_growing_tree();
-            var res = gen.next();var res = gen.next();
+            var res = gen.next();
             while(!res.done){
                 res = gen.next();
                 yield;
@@ -280,8 +299,8 @@ export class Maze{
                 res = gen.next();
                 yield;
             }
-            for(var i = 0; i < 10; i++){
-                this.shift_origin(100);
+            for(var i = 0; i < 100; i++){
+                this.shift_origin(10);
                 yield;
             }
         }else{
@@ -293,6 +312,12 @@ export class Maze{
                 yield;
             }
         }
+        this.pick_start_cell();
+
+        this.player_r = this.start_point_r;
+        this.player_c = this.start_point_c;
+
+        this.status = Status.IN_PLAY;
     }
 
     // use DFS to generate maze
@@ -479,7 +504,6 @@ export class Maze{
                     var next_cell = available_neighbors[
                         Math.floor(Math.random() * available_neighbors.length)
                     ];
-
                     this.connnect_neighbors(current_cell, next_cell);
 
                     this.parent[next_cell] = current_cell;

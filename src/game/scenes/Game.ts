@@ -8,6 +8,7 @@ export class Game extends Scene
     cellWidth: number;
     maze: Maze;
     mazeDrawing: GameObjects.Shape[]; 
+    startingCell: GameObjects.Shape;
     pathDrawing: GameObjects.Arc[];
     regenerateButton: GameObjects.Text;
     algorithm: GameObjects.Text;
@@ -19,7 +20,7 @@ export class Game extends Scene
 
     score: number = 0;
     scroeBoard: GameObjects.Text;
-
+    
     constructor ()
     {
         super('Game');
@@ -77,7 +78,8 @@ export class Game extends Scene
                         r, c, offset_x, offset_y, 
                         0x008000, 0.5, true
                     );
-                    this.mazeDrawing.push(starting_cell);
+                    this.startingCell = starting_cell;
+                    this.startingCell.visible = false;
                 }
                 if(r == this.maze.end_point_r && c == this.maze.end_point_c){
                     let ending_cell = this.markCell(
@@ -159,10 +161,35 @@ export class Game extends Scene
             item.destroy();
         });
         this.pathDrawing = [];
-        this.maze.createMaze();
+        //this.maze.createMaze();
+        
+        this.startingCell.visible = false;
+        this.player.visible = false;
+        this.regenerateButton.setVisible(false);
+        var mazeGen = this.maze.generate();
+        var genStep = mazeGen.next();
+        var generateMazeStep = this.time.addEvent({
+            delay: 10, // ms
+            callback: () => {
+                if(!genStep.done){
+                    genStep = mazeGen.next();
+                    this.updateMaze();
+                }else{
+                    this.updatePlayer();
+                    this.startingCell.visible = true;
+                    this.regenerateButton.setVisible(true);
+                    generateMazeStep.remove();
+                    generateMazeStep.destroy();
+                }
+            },
+            loop: true,
+            startAt: 0,
+            timeScale: 1,
+            paused: false,
+        });
+        
         this.algorithm.setText(this.maze.algorithm);
-        this.drawMaze(10, 110);
-        this.updatePlayer();
+        //this.drawMaze(10, 110);
         this.playerMoved = false;
     }
 
@@ -190,6 +217,7 @@ export class Game extends Scene
         this.player.y = this.offset_y 
                         + this.maze.player_r*this.cellWidth 
                             + this.cellWidth/2;   
+        this.player.visible = true;
     }
 
     update(){
@@ -206,8 +234,32 @@ export class Game extends Scene
 
     create ()
     {
-        this.maze.createMaze();
-        const swipe = new Swipe(
+        // this.maze.createMaze(); // this create maze immediatly 
+        var mazeGen = this.maze.generate();
+        var genStep = mazeGen.next();
+        var generateMazeStep = this.time.addEvent({
+            delay: 10, // ms
+            callback: () => {
+                if(!genStep.done){
+                    genStep = mazeGen.next();
+                    this.updateMaze();
+                }else{
+                    this.drawPlayer(this.offset_x, this.offset_y, this.maze.start_point_r, this.maze.start_point_c);
+                    this.startingCell.visible = true;
+                    this.regenerateButton.setVisible(true);
+                    generateMazeStep.remove();
+                    generateMazeStep.destroy();
+                }
+            },
+            loop: true,
+            startAt: 0,
+            timeScale: 1,
+            paused: false,
+        });
+          
+
+        // add swipe gesture
+        new Swipe(
             this, 
             (direction: SwipeDirection) => {
                 if(direction == SwipeDirection.UP){
@@ -231,26 +283,22 @@ export class Game extends Scene
         )
         this.input.keyboard?.on(
             'keydown-UP', () => {
-                this.maze.move_player(Direction.UP);
-                this.playerMoved = true;
+                this.playerMoved = this.maze.move_player(Direction.UP);
             }, this
         );
         this.input.keyboard?.on(
             'keydown-DOWN', () => {
-                this.maze.move_player(Direction.DOWN);
-                this.playerMoved = true;
+                this.playerMoved = this.maze.move_player(Direction.DOWN);
             }, this
         );
         this.input.keyboard?.on(
             'keydown-LEFT', () => {
-                this.maze.move_player(Direction.LEFT);
-                this.playerMoved = true;
+                this.playerMoved = this.maze.move_player(Direction.LEFT);
             }, this
         );
         this.input.keyboard?.on(
             'keydown-RIGHT', () => {
-                this.maze.move_player(Direction.RIGHT);
-                this.playerMoved = true;
+                this.playerMoved = this.maze.move_player(Direction.RIGHT);
             }, this
         );
         this.regenerateButton = this.add.text(
@@ -263,7 +311,8 @@ export class Game extends Scene
             this.regenerateButton.setStyle({ fill: '#00ff00'});
         }).on('pointerdown', () => {
             this.regenerateMaze();
-        });
+            this.regenerateButton.setVisible(false);
+        }).setVisible(false);
 
         var pathButton = this.add.text(
             10, 40, 
@@ -291,9 +340,10 @@ export class Game extends Scene
             this.cursors = this.input.keyboard?.createCursorKeys();
         }else{
             console.log('no keyboard');
+
         }
         this.drawMaze(this.offset_x, this.offset_y);
-        this.drawPlayer(this.offset_x, this.offset_y, this.maze.start_point_r, this.maze.start_point_c);
+        //this.drawPlayer(this.offset_x, this.offset_y, this.maze.start_point_r, this.maze.start_point_c);
         EventBus.emit('current-scene-ready', this);
 
 
