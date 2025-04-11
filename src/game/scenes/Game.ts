@@ -17,6 +17,7 @@ export class Game extends Scene
     offset_x: number;
     offset_y: number;
     playerMoved: boolean;
+    progressBar: GameObjects.Rectangle;
 
     score: number = 0;
     scroeBoard: GameObjects.Text;
@@ -169,7 +170,7 @@ export class Game extends Scene
         var mazeGen = this.maze.generate();
         var genStep = mazeGen.next();
         var generateMazeStep = this.time.addEvent({
-            delay: 10, // ms
+            delay: 2, // ms
             callback: () => {
                 if(!genStep.done){
                     genStep = mazeGen.next();
@@ -232,15 +233,28 @@ export class Game extends Scene
         }
     }
 
+    drawProgressBar(){
+        this.progressBar = this.add.rectangle(10, 86, 300, 10, 0xff0000).setOrigin(0);
+    }
+
+    updateProgressBar(progress: number){
+        if(this.progressBar){
+            this.progressBar.setSize(300*progress, 10);
+        }
+    }
+
     create ()
     {
-        // this.maze.createMaze(); // this create maze immediatly 
+        // generate progress bar
+        this.drawProgressBar();
         var mazeGen = this.maze.generate();
         var genStep = mazeGen.next();
         var generateMazeStep = this.time.addEvent({
-            delay: 10, // ms
+            delay: 2, // ms
             callback: () => {
                 if(!genStep.done){
+                    var p = genStep.value;
+                    this.updateProgressBar(p);
                     genStep = mazeGen.next();
                     this.updateMaze();
                 }else{
@@ -346,6 +360,6 @@ export class Game extends Scene
         //this.drawPlayer(this.offset_x, this.offset_y, this.maze.start_point_r, this.maze.start_point_c);
         EventBus.emit('current-scene-ready', this);
 
-
+        
     }
 }

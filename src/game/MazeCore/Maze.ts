@@ -11,6 +11,11 @@ enum Status {
     FINISHED
 }
 
+/**
+ * The core Maze game. Need to generate maze by calling createMaze for immedate 
+ * creation or mazeGenerator to get a maze generator so can generate maze one 
+ * step a time.
+ */
 export class Maze{
 
     maze: number[][];
@@ -29,6 +34,13 @@ export class Maze{
     player_r: number;
     player_c: number;
 
+    /**
+     * generate a new maze game without maze generation. Need to generate maze
+     * by calling createMaze for immediate creation or mazeGenerator to get a 
+     * maze generator so can generate maze one step a time.
+     * @param  {number} rown The row number of the maze
+     * @param  {number} coln The column bumber of the maze
+     */
     constructor(rown: number, coln: number){
         this.rown = rown;
         this.coln = coln;
@@ -45,24 +57,9 @@ export class Maze{
         //[this.start_point_r, this.start_point_c] = this.pick_random_point();
     }
 
-    *mazeGenerator(){
-        [this.end_point_r, this.end_point_c] = this.pick_random_point();
-        this.maze = new Array(this.rown).fill(null)
-            .map(() => new Array(this.coln).fill(0b1111));
-        [this.end_point_r, this.end_point_c] = this.pick_random_point();
-        this.parent = new Array(this.rown * this.coln).fill(-1);
-
-        //this.generate();
-
-
-        this.pick_start_cell();
-
-        this.player_r = this.start_point_r;
-        this.player_c = this.start_point_c;
-
-        this.status = Status.IN_PLAY;
-    }
-
+    /**
+     * generate maze immediately 
+     */
     createMaze(){
         [this.end_point_r, this.end_point_c] = this.pick_random_point();
         this.maze = new Array(this.rown).fill(null)
@@ -83,7 +80,12 @@ export class Maze{
         this.status = Status.IN_PLAY;
     }
 
-    // return ture of moved
+    /**
+     * move player towward the given direction. Player moves until reach 
+     * next branch
+     * @param {Direction} direction the direction the player moves toward
+     * @returns {boolean} true if player moved successfully otherwise false
+     */
     move_player(direction: Direction): boolean{
         if(this.status != Status.IN_PLAY){
             return false;
@@ -146,33 +148,65 @@ export class Maze{
         return moved;
     }
 
-    // turn cell id to row and col
+    /**
+     * convert cell id to its row number and column number
+     * @param {number} id the id of the cell in the maze
+     * @returns {[number, number]} the first number indicates the row index and 
+     * the second number indicates the column index
+     */
     cell_id_to_rc(id: number): [number, number]{
         var r = Math.floor(id / this.coln);
         var c = id % this.coln;
         return [r, c]
     }
 
-    // turn row and col to cell id
+    /**
+     * convert row and column number to cell id
+     * @param {number} r the row index of the cell 
+     * @param {number} c the columb index of the cell
+     * @returns {number} the cell id
+     */
     rc_to_cell_id(r: number, c: number): number{
         return r*this.coln + c;
     } 
  
-
+    /**
+     * pick a random cell in the maze and return its row and column index
+     * @returns {[number, number]} the row index and column index of the 
+     * picked cell 
+     */
     pick_random_point(): [number, number]{
         var id = Math.floor(Math.random()*this.rown * this.coln);
         return this.cell_id_to_rc(id)
     }
 
-    // remove the wall on the given direction and return and updated wall value
+    /**
+     * update the cell value so the wall face the given direction is removed
+     * @param {number} original_wall_value the cell value indicates the walls 
+     * of the cell
+     * @param {Direction} direction remove the wall on this direction 
+     * @returns {number} the updated cell value
+     */
     remove_wall(original_wall_value: number, direction: Direction): number{
         return (original_wall_value ^ (1 << direction));
     }
     
+    /**
+     * update the cell value so the wall face the given direction is set
+     * @param {number} original_wall_value the cell value indicates
+     * @param {Direction} direction 
+     * @returns {number}
+     */
     set_wall(original_wall_value: number, direction: Direction): number{
         return (original_wall_value | (1 << direction));
     }
 
+    /**
+     * connect two neighbor cells in the maze by remove the wall between. Two 
+     * cells have to be neighbors.
+     * @param {number} cellA_id one of the cell
+     * @param {number} cellB_id another cell
+     */
     connnect_neighbors(cellA_id: number, cellB_id: number){
         if(cellA_id > cellB_id){
             let tmp = cellA_id;
@@ -205,6 +239,12 @@ export class Maze{
         }
     }
 
+    /**
+     * disconnect two neighbor cells in the maze by remove the wall between. 
+     * Two cells have to be neighbors.
+     * @param {number} cellA_id one of the cell
+     * @param {number} cellB_id another cell
+     */
     disconnnect_neighbors(cellA_id: number, cellB_id: number){
         if(cellA_id > cellB_id){
             let tmp = cellA_id;
@@ -237,8 +277,16 @@ export class Maze{
         }
     }
 
-    // recursive 
-    find_depth(cell_id: number, depth: number[]){
+    /**
+     * find the depth of the a cell which is the distance of this cell to the 
+     * end point. This function is recursive! All the parents' depth will be 
+     * stored in the depth array.
+     * @param {number} cell_id the id of the cell to find depth
+     * @param {number} depth the depth map of the maze as all cells' depth is 
+     * stored in this array with their id as index
+     * @returns {number} the distance from the cell to the end point
+     */
+    find_depth(cell_id: number, depth: number[]): number{
         if(depth[cell_id] != -1){
             return depth[cell_id];
         }
@@ -251,7 +299,11 @@ export class Maze{
         return depth[cell_id];
     }
 
-    // pick start cell after maze and parent is finished
+    /**
+     * pick the start cell for the maze. This is where the player initially 
+     * spawned. It will try to prevent the start cell being too close to the 
+     * end point
+     */
     pick_start_cell(){
         var max_depth = -1
         var depth: number[] = new Array(this.rown * this.coln).fill(-1);
@@ -272,7 +324,12 @@ export class Maze{
         [this.start_point_r, this.start_point_c] = this.cell_id_to_rc(start_cell);
     }
 
-    *generate(){
+    /**
+     * A generator for the maze generation. It will randomly pick an algorithm 
+     * to generate the maze.
+     * @yields {number} the percentage of the maze generation
+     */
+    *generate(): Generator<number, number, any>{
         [this.end_point_r, this.end_point_c] = this.pick_random_point();
         this.maze = new Array(this.rown).fill(null)
             .map(() => new Array(this.coln).fill(0b1111));
@@ -289,7 +346,7 @@ export class Maze{
             var res = gen.next();
             while(!res.done){
                 res = gen.next();
-                yield;
+                yield res.value;
             }
         }else if(i == 1){
             this.algorithm = "DFS + Shift Origin 1000";
@@ -297,11 +354,11 @@ export class Maze{
             var res = gen.next();
             while(!res.done){
                 res = gen.next();
-                yield;
+                yield res.value * 0.8;
             }
             for(var i = 0; i < 100; i++){
                 this.shift_origin(10);
-                yield;
+                yield 0.8 + (i / 10) * 0.2 ;
             }
         }else{
             this.algorithm = "Prim's";
@@ -309,7 +366,7 @@ export class Maze{
             var res = gen.next();
             while(!res.done){
                 res = gen.next();
-                yield;
+                yield res.value;
             }
         }
         this.pick_start_cell();
@@ -318,13 +375,14 @@ export class Maze{
         this.player_c = this.start_point_c;
 
         this.status = Status.IN_PLAY;
+        return 1;
     }
 
     // use DFS to generate maze
     // and try generate end cell after depth > (rown + coln) * 2 if failed, 
     // then pick a random cell
     // problem: the main path doesn't have enough branches
-    *generate_by_DFS(){
+    *generate_by_DFS(): Generator<number, number, any>{
         var currentPath: number[] = [this.rc_to_cell_id(
             this.end_point_r, this.end_point_c
         )];
@@ -368,13 +426,14 @@ export class Maze{
                 currentPath.push(nextCell);
                 reached.push(nextCell);
             }
-            yield;
+            yield reached.length / (this.rown * this.coln);
         }
+        return 1;
     }
 
     // use Prim's algorithm to generate maze
     // problem: maze too easy, not enough tortuous
-    *generate_by_Prim(){
+    *generate_by_Prim(): Generator<number, number, any>{
         //[this.end_point_r, this.end_point_c] = this.pick_random_point();
         var frontier: number[] = [this.rc_to_cell_id(
             this.end_point_r, this.end_point_c
@@ -442,11 +501,12 @@ export class Maze{
                     frontier.splice(index, 1);
                 }
             }
-            yield;
+            yield reached.size / (this.rown * this.coln);
         }
+        return 1;
     }
 
-    *generate_by_growing_tree(branch_length: number = 4){
+    *generate_by_growing_tree(branch_length: number = 4): Generator<number, number, any>{
         var reached_cell: Set<number> = new Set(
             [this.rc_to_cell_id(this.end_point_r, this.end_point_c)]
         );
@@ -511,18 +571,18 @@ export class Maze{
                     reached_cell.add(next_cell);
                     current_cell = next_cell;
                 }
-                yield;
+                yield reached_cell.size / (this.rown * this.coln);
             }
         }
-
+        return 1;
     }
 
-    // shift origin, require to have a perfect maze before
-    shift_origin(times?: number){
-        if (typeof times === "undefined") {    
-            times = 1
-        }
-        for(let i: number = 0; i<= times; i++){
+    /**
+     * shift the origin(the end point) of the maze by times given
+     * @param {number} times indicates how many times the origin will be shifted
+     */
+    shift_origin(times: number = 1){
+        for(let i: number = 0; i< times; i++){
             var end_cell_id = this.rc_to_cell_id(this.end_point_r, this.end_point_c);
             var available_neighbors: number[] = [];
             // up
@@ -558,10 +618,13 @@ export class Maze{
             // update new end
             [this.end_point_r, this.end_point_c] = this.cell_id_to_rc(new_end_cell_id);
         }
-        
     }
 
-    // find solution from the player's position to the end point instead of start point
+    /**
+     * Find the path from the player's position to the end point
+     * @returns {[number, number][]} An array of coordinates shows the path 
+     * from the player's position to the end point
+     */
     find_solution(): [number, number][]{
         var path_rc: [number, number][] = [];
         var current_cell_id = this.rc_to_cell_id(this.player_r, this.player_c);
@@ -573,6 +636,10 @@ export class Maze{
         return path_rc;
     }
 
+    /**
+     * To check if the game is finished.
+     * @returns {boolean} true if the game is finished otherwise false
+     */
     game_over(){
         return this.status == Status.FINISHED;
     }
