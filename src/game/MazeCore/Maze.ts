@@ -34,6 +34,9 @@ export class Maze{
     player_r: number;
     player_c: number;
 
+    coins_pos: number[]; // list of the coins position in cell id
+    coin_amount: number;
+
     /**
      * generate a new maze game without maze generation. Need to generate maze
      * by calling createMaze for immediate creation or mazeGenerator to get a 
@@ -49,6 +52,7 @@ export class Maze{
         this.maze = new Array(rown).fill(null)
             .map(() => new Array(coln).fill(0b1111));
         this.status = Status.PREPARING;
+        this.coins_pos = [];
         // comfirm end point first and after created maze, pick a random 
         // start cell
         // so that all cells can follow their parent to reach end point
@@ -76,6 +80,8 @@ export class Maze{
 
         this.player_r = this.start_point_r;
         this.player_c = this.start_point_c;
+        var coin_amount_in_maze = Math.floor(Math.random()*3) + 1;
+        this.put_coins(coin_amount_in_maze);
 
         this.status = Status.IN_PLAY;
     }
@@ -141,6 +147,7 @@ export class Maze{
                 moved = true;
             }
         }
+        this.check_player_n_coin();
         if(this.player_r == this.end_point_r && 
             this.player_c == this.end_point_c){
             this.status = Status.FINISHED;
@@ -373,6 +380,10 @@ export class Maze{
 
         this.player_r = this.start_point_r;
         this.player_c = this.start_point_c;
+
+        var coin_amount_in_maze = Math.floor(Math.random()*3) + 1;
+        this.put_coins(coin_amount_in_maze);
+        console.log(this.get_coins_pos());
 
         this.status = Status.IN_PLAY;
         return 1;
@@ -634,6 +645,66 @@ export class Maze{
             current_cell_id = this.parent[current_cell_id];
         }
         return path_rc;
+    }
+
+    /**
+     * Put coins in the maze at random positions
+     * @param {number} coinNumber the amount of coins to put in the maze, 
+     * default is one
+     */
+    put_coins(coinNumber: number = 1){
+        for(var i = 0; i<coinNumber; i++){
+            var pos = this.pick_random_point();
+            var cell_id = this.rc_to_cell_id(pos[0], pos[1]);
+            this.coins_pos.push(cell_id);
+        }
+    }
+
+    /**
+     * Get the positions of all coins 
+     * @returns {[number, number][]} an array of position of all coins
+     */
+    get_coins_pos(){
+        var coins_p:[number, number][] = [];
+        this.coins_pos.map((id) => {
+            coins_p.push(this.cell_id_to_rc(id));
+        });
+        return coins_p;
+    }
+
+    /**
+     * Check if there is a coin at player's position. If there is, remove the 
+     * coin and add 1 to this coin amount
+     */
+    check_player_n_coin(){
+        var player_pos = this.rc_to_cell_id(this.player_r, this.player_c);
+        var index = this.coins_pos.indexOf(player_pos);
+        if (index != -1){
+            this.add_coin();
+            this.coins_pos.splice(index);
+        }
+    }
+
+    /**
+     * Add coins to player. Will ignore when amount is a negative number
+     * @param {number} amount the amount of coins to add, default is 1 
+     */
+    add_coin(amount: number = 1){
+        if(amount > 0){
+            this.coin_amount += amount;
+        }
+    }
+
+    /**
+     * Spend the amount of coins
+     * @param {number} amount spend this amount of coins
+     * @returns {boolean} true if successfully spent the coins, otherwise false
+     */
+    spend_coin(amount: number): boolean{
+        if(amount < 0) { return false; }
+        if(amount > this.coin_amount) { return false; }
+        this.coin_amount -= amount;
+        return true;
     }
 
     /**
