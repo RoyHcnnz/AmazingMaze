@@ -8,7 +8,7 @@ const config: Types.Core.GameConfig = {
     width: 320,
     height: 812,
     parent: 'game-container',
-    backgroundColor: '#028af8',
+    backgroundColor: '#fdf2f8',
     scene: [
         MainGame
     ]
