@@ -35,7 +35,7 @@ export class Maze{
     player_c: number;
 
     coins_pos: number[]; // list of the coins position in cell id
-    coin_amount: number;
+    coin_amount: number; // Amount of coins player owned
 
     /**
      * generate a new maze game without maze generation. Need to generate maze
@@ -52,7 +52,9 @@ export class Maze{
         this.maze = new Array(rown).fill(null)
             .map(() => new Array(coln).fill(0b1111));
         this.status = Status.PREPARING;
+
         this.coins_pos = [];
+        this.coin_amount = 0;
         // comfirm end point first and after created maze, pick a random 
         // start cell
         // so that all cells can follow their parent to reach end point
@@ -65,6 +67,8 @@ export class Maze{
      * generate maze immediately 
      */
     createMaze(){
+        // reset
+        this.coins_pos = [];
         [this.end_point_r, this.end_point_c] = this.pick_random_point();
         this.maze = new Array(this.rown).fill(null)
             .map(() => new Array(this.coln).fill(0b1111));
@@ -96,54 +100,71 @@ export class Maze{
         if(this.status != Status.IN_PLAY){
             return false;
         }
-        var r = this.player_r;
-        var c = this.player_c;
         var moved = false;
+        
+        // check current coin
+        this.check_player_n_coin();
         if(direction == Direction.UP){
-            if(r>0 && (this.maze[r][c]>>3) % 2 == 0){
-                r = r - 1;
-                while(r>0 && (this.maze[r][c] == 0b0011) 
-                    && (r != this.end_point_r || c != this.end_point_c)
+            if(this.player_r>0 && (this.maze[this.player_r][this.player_c]>>3) % 2 == 0){
+                this.player_r = this.player_r - 1;
+                while(this.player_r>0 && (this.maze[this.player_r][this.player_c] == 0b0011) 
+                    && (this.player_r != this.end_point_r || this.player_c != this.end_point_c)
                 ){
-                    r = r - 1;
+                    this.player_r = this.player_r - 1;
+                    this.check_player_n_coin();
+                    if(this.player_r == this.end_point_r && 
+                        this.player_c == this.end_point_c){
+                        this.status = Status.FINISHED;
+                    }   
                 }
-                this.player_r = r;
                 moved = true;
             }
         }
         else if(direction == Direction.DOWN){
-            if(r<this.rown-1 && (this.maze[r][c]>>2) % 2 == 0){
-                r = r + 1;
-                while(r<this.rown-1 && (this.maze[r][c] == 0b0011)
-                    && (r != this.end_point_r || c != this.end_point_c)
+            if(this.player_r<this.rown-1 && (this.maze[this.player_r][this.player_c]>>2) % 2 == 0){
+                this.player_r = this.player_r + 1;
+                while(this.player_r<this.rown-1 && (this.maze[this.player_r][this.player_c] == 0b0011)
+                    && (this.player_r != this.end_point_r || this.player_c != this.end_point_c)
                 ){
-                    r = r + 1;
+                    this.player_r = this.player_r + 1;
+                    this.check_player_n_coin();
+                    if(this.player_r == this.end_point_r && 
+                        this.player_c == this.end_point_c){
+                        this.status = Status.FINISHED;
+                    }
                 }
-                this.player_r = r;
                 moved = true;
             }
         }
         else if(direction == Direction.LEFT){
-            if(c>0 && (this.maze[r][c]>>1) % 2 == 0){
-                c = c - 1;
-                while(c>0 && (this.maze[r][c] == 0b1100)
-                    && (r != this.end_point_r || c != this.end_point_c)
+            if(this.player_c>0 && (this.maze[this.player_r][this.player_c]>>1) % 2 == 0){
+                this.player_c = this.player_c - 1;
+                while(this.player_c>0 && (this.maze[this.player_r][this.player_c] == 0b1100)
+                    && (this.player_r != this.end_point_r || this.player_c != this.end_point_c)
                 ){
-                    c = c - 1;
+                    this.player_c = this.player_c - 1;
+                    this.check_player_n_coin();
+                    if(this.player_r == this.end_point_r && 
+                        this.player_c == this.end_point_c){
+                        this.status = Status.FINISHED;
+                    }
                 }
-                this.player_c = c;
                 moved = true;
             }
         }
         else if(direction == Direction.RIGHT){
-            if(c<this.coln-1 && this.maze[r][c] % 2 == 0){
-                c = c + 1;
-                while(c<this.coln-1 && (this.maze[r][c] == 0b1100)
-                    && (r != this.end_point_r || c != this.end_point_c)
+            if(this.player_c<this.coln-1 && this.maze[this.player_r][this.player_c] % 2 == 0){
+                this.player_c = this.player_c + 1;
+                while(this.player_c<this.coln-1 && (this.maze[this.player_r][this.player_c] == 0b1100)
+                    && (this.player_r != this.end_point_r || this.player_c != this.end_point_c)
                 ){
-                    c = c + 1;
+                    this.player_c = this.player_c + 1;
+                    this.check_player_n_coin();
+                    if(this.player_r == this.end_point_r && 
+                        this.player_c == this.end_point_c){
+                        this.status = Status.FINISHED;
+                    }
                 }
-                this.player_c = c;
                 moved = true;
             }
         }
@@ -337,6 +358,7 @@ export class Maze{
      * @yields {number} the percentage of the maze generation
      */
     *generate(): Generator<number, number, any>{
+        this.coins_pos = [];
         [this.end_point_r, this.end_point_c] = this.pick_random_point();
         this.maze = new Array(this.rown).fill(null)
             .map(() => new Array(this.coln).fill(0b1111));
@@ -664,7 +686,7 @@ export class Maze{
      * Get the positions of all coins 
      * @returns {[number, number][]} an array of position of all coins
      */
-    get_coins_pos(){
+    get_coins_pos(): [number, number][]{
         var coins_p:[number, number][] = [];
         this.coins_pos.map((id) => {
             coins_p.push(this.cell_id_to_rc(id));
@@ -711,7 +733,7 @@ export class Maze{
      * To check if the game is finished.
      * @returns {boolean} true if the game is finished otherwise false
      */
-    game_over(){
+    game_over(): boolean{
         return this.status == Status.FINISHED;
     }
 }

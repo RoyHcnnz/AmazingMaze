@@ -10,6 +10,8 @@ export class Game extends Scene
     offset_y: number;
 
     maze: Maze;
+    mazeReward: number = 2; // the amount of coins when a mazed is solved
+    pathCost: number = 3; // the price of show path
     
     // maze drawing is an array of four lines which are the up, down, left and right walls of the cell
     mazeDrawing: [GameObjects.Line, GameObjects.Line, GameObjects.Line, GameObjects.Line][]; 
@@ -23,6 +25,7 @@ export class Game extends Scene
     regenerateButton: GameObjects.Text;
     pathButton: GameObjects.Text;
     algorithm: GameObjects.Text;
+    coinAmountDisplay: GameObjects.Text;
 
     cursors: Phaser.Types.Input.Keyboard.CursorKeys;
 
@@ -30,8 +33,6 @@ export class Game extends Scene
 
     progressBar: GameObjects.Rectangle;
 
-    score: number = 0;
-    scoreBoard: GameObjects.Text;
     
     constructor ()
     {
@@ -40,6 +41,7 @@ export class Game extends Scene
         this.maze = new Maze(40, 20);
         this.mazeDrawing = []; 
         this.pathDrawing = [];
+        this.coinDrawing = [];
 
         this.offset_x = 10;
         this.offset_y = 110;
@@ -82,8 +84,6 @@ export class Game extends Scene
         // this.drawMaze(this.offset_x, this.offset_y);
         //this.drawPlayer(this.offset_x, this.offset_y, this.maze.start_point_r, this.maze.start_point_c);
         EventBus.emit('current-scene-ready', this);
-
-        
     }
 
     createGUI(){
@@ -103,9 +103,23 @@ export class Game extends Scene
             this.regenerateButton.setVisible(false);
         }).setVisible(false);
 
+        this.coinAmountDisplay = this.add.text(
+            160, 10,
+            'coin: ',
+            { font: '16px Courier', color: '#00ff00' }
+        ).setInteractive().on('pointerover', () => {
+            this.regenerateButton.setStyle({ fill: '#ff0'});
+        }).on('pointerout', () => {
+            this.regenerateButton.setStyle({ fill: '#00ff00'});
+        }).on('pointerdown', () => {
+            this.resetMaze();
+            this.generateMaze();
+            this.regenerateButton.setVisible(false);
+        });
+
         this.pathButton = this.add.text(
             10, 40, 
-            'show/hide path', 
+            'show path(3 coins)', 
             { font: '16px Courier', color: '#00ff00' }
         ).setInteractive().on('pointerover', () => {
             this.pathButton.setStyle({ fill: '#ff0'});
@@ -113,9 +127,10 @@ export class Game extends Scene
             this.pathButton.setStyle({ fill: '#00ff00'});
         }).on('pointerdown', () => {
             if(this.pathDrawing.length == 0){
-                this.drawPath(this.offset_x, this.offset_y);
-            }else{
-                this.removePath();
+                if(this.maze.spend_coin(this.pathCost)){
+                    this.drawPath(this.offset_x, this.offset_y);
+                    this.updateCoinAmount();
+                }
             }
         }).setVisible(false);
 
@@ -168,17 +183,21 @@ export class Game extends Scene
                 this.playerMoved = this.maze.move_player(Direction.RIGHT);
             }, this
         );
-        
     }
 
     update(){
         if(this.playerMoved){
+            if(this.pathDrawing.length != 0){
+                this.removePath();
+            }
+            this.updateCoins(this.offset_x, this.offset_y);
             this.updatePlayer();
+            this.updateCoinAmount();
             this.playerMoved = false;
             if(this.maze.game_over()){
-                console.log("you win")
-                this.score += 1;
-                //this.scoreBoard.setText('Score: ' + this.score);
+                console.log("you win");
+                this.maze.add_coin(this.mazeReward);
+                this.updateCoinAmount();
                 this.resetMaze();
                 this.generateMaze();
             }
@@ -320,7 +339,11 @@ export class Game extends Scene
             .setVisible(true);
     }
 
-    drawCoins(offset_x: number, offset_y: number): void{
+    updateCoinAmount(): void{
+        this.coinAmountDisplay.setText('Coin: ' + this.maze.coin_amount);
+    }
+
+    updateCoins(offset_x: number, offset_y: number): void{
         this.coinDrawing.map((g) => { g.destroy() }) // destroy old ones
         var coins_pos = this.maze.get_coins_pos();
         coins_pos.map((p) => {
@@ -370,28 +393,38 @@ export class Game extends Scene
 
     resetMaze(){
         this.removePath();
+        this.updateCoins(this.offset_x, this.offset_y);
         this.startingCell.setVisible(false);
         this.endingCell.setVisible(false);
         this.player.setVisible(false);
         this.regenerateButton.setVisible(false);
         this.pathButton.setVisible(false);
+        this.progressBar.setVisible(false);
     }
 
     generateMaze(){
         var mazeGen = this.maze.generate();
         var genStep = mazeGen.next();
+        this.updateCoins(this.offset_x, this.offset_y);
+        this.progressBar.setVisible(true);
+        this.algorithm.setText("algorithm: " + this.maze.algorithm);
         this.updateEndingCell();
         var generateMazeStep = this.time.addEvent({
             delay: 2, // ms
             callback: () => {
                 if(!genStep.done){
                     genStep = mazeGen.next();
+                    var p = genStep.value;
+                    this.updateProgressBar(p);
                     this.updateMaze();
+                    this.updateEndingCell();
                 }else{
                     this.updatePlayer();
                     this.updateStartingCell();
+                    this.updateCoins(this.offset_x, this.offset_y);
                     this.regenerateButton.setVisible(true);
                     this.pathButton.setVisible(true);
+                    this.progressBar.setVisible(false);
                     generateMazeStep.remove();
                     generateMazeStep.destroy();
                 }
@@ -402,7 +435,6 @@ export class Game extends Scene
             paused: false,
         });
 
-        this.algorithm.setText(this.maze.algorithm);
         //this.drawMaze(10, 110);
         this.playerMoved = false;
     }
