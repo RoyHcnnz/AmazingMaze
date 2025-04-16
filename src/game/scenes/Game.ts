@@ -8,6 +8,9 @@ const colorPalette = {
     primary_d10: '#d4418a',
     primary_d20: '#bd3a7a',
     primary_d30: '#a5326b',
+    primary_l10: '#ee5aa3',
+    primary_l20: '#f06dad',
+    primary_l30: '#f27fb8',
     secondary: '',
     background: '#fdf2f8',
     yellow: '#ffd359',
@@ -18,7 +21,7 @@ const colorPalette = {
 }
 
 const TEXT_COLOR = colorPalette.primary;
-const TEXT_HOVER_COLOR = colorPalette.primary_d30;
+const TEXT_HOVER_COLOR = colorPalette.primary_l30;
 const TEXT_DOWN_COLOR = colorPalette.primary_d30;
 const BACKGROUND_COLOR = colorPalette.background;
 const MAZE_COLOR = colorPalette.primary;
@@ -40,6 +43,7 @@ export class Game extends Scene
     maze: Maze;
     mazeReward: number = 2; // the amount of coins when a mazed is solved
     pathCost: number = 3; // the price of show path
+    skipCost: number = 5;
     
     // maze drawing is an array of four lines which are the up, down, left and right walls of the cell
     mazeDrawing: [GameObjects.Line, GameObjects.Line, GameObjects.Line, GameObjects.Line][]; 
@@ -61,7 +65,6 @@ export class Game extends Scene
 
     progressBar: GameObjects.Rectangle;
 
-    
     constructor ()
     {
         super('Game');
@@ -119,32 +122,30 @@ export class Game extends Scene
         this.drawProgressBar();
         this.regenerateButton = this.add.text(
             10, 10, 
-            'New Maze', 
+            'Skip Level(5 coins)', 
             { font: '16px Courier', color: TEXT_COLOR}
         ).setInteractive().on('pointerover', () => {
             this.regenerateButton.setStyle({ fill: TEXT_HOVER_COLOR });
         }).on('pointerout', () => {
             this.regenerateButton.setStyle({ fill: TEXT_COLOR});
         }).on('pointerdown', () => {
-            this.resetMaze();
-            this.generateMaze();
-            this.regenerateButton.setVisible(false);
+            this.regenerateButton.setStyle({ fill: TEXT_DOWN_COLOR });
+            if(this.maze.spend_coin(this.skipCost)){
+                this.resetMaze();
+                this.generateMaze();
+                this.regenerateButton.setVisible(false);
+                this.updateCoinAmount();
+            }
+        }).on('pointerup',() => {
+            this.regenerateButton.setStyle({ fill: TEXT_HOVER_COLOR })
         }).setVisible(false);
         // this.regenerateButton.preFX?.addShadow();
 
         this.coinAmountDisplay = this.add.text(
-            160, 10,
+            230, 10,
             'coin: 0',
             { font: '16px Courier', color: TEXT_COLOR }
-        ).setInteractive().on('pointerover', () => {
-            this.regenerateButton.setStyle({ fill: TEXT_HOVER_COLOR });
-        }).on('pointerout', () => {
-            this.regenerateButton.setStyle({ fill: TEXT_COLOR });
-        }).on('pointerdown', () => {
-            this.resetMaze();
-            this.generateMaze();
-            this.regenerateButton.setVisible(false);
-        });
+        )
 
         this.pathButton = this.add.text(
             10, 40, 
@@ -155,12 +156,15 @@ export class Game extends Scene
         }).on('pointerout', () => {
             this.pathButton.setStyle({ fill: TEXT_COLOR });
         }).on('pointerdown', () => {
+            this.pathButton.setStyle({ fill: TEXT_DOWN_COLOR });
             if(this.pathDrawing.length == 0){
                 if(this.maze.spend_coin(this.pathCost)){
                     this.drawPath(this.offset_x, this.offset_y);
                     this.updateCoinAmount();
                 }
             }
+        }).on('pointerup',() => {
+            this.pathButton.setStyle({ fill: TEXT_HOVER_COLOR });
         }).setVisible(false);
 
         this.algorithm = this.add.text(

@@ -421,7 +421,6 @@ export class Maze{
 
         var coin_amount_in_maze = Math.floor(Math.random()*3) + 1;
         this.put_coins(coin_amount_in_maze);
-        console.log(this.get_coins_pos());
 
         this.status = Status.IN_PLAY;
         return 1;
